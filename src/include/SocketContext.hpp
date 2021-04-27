@@ -20,7 +20,18 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ */
+#ifndef SOCKET_CONTEXT_H_
+#define SOCKET_CONTEXT_H_
+
+#include <memory>
+#include <utility>
+#include <string>
+#include <functional>
+
+#include <boost/asio.hpp>
+
+/**
  * This file provides the socket read/write context,
  * and will encapsulate asio::io_context,
  * encapsulating the io_context and socket read/write.
@@ -35,7 +46,7 @@
  * 
  * SocketContext will encapsulate the events related to the socket and pass the entity to TcpServer for use.
  * 
- * Ex.
+ * @example
  * int main()
  * {
  *     ip::tcp::socket socket;
@@ -53,36 +64,33 @@
  *     TcpServer server(tc,)
  * }
  */
-#ifndef SOCKET_CONTEXT_H_
-#define SOCKET_CONTEXT_H_
-
-#include <memory>
-#include <utility>
-#include <string>
-#include <functional>
-#include <boost/asio.hpp>
-
-namespace asio = boost::asio;
-namespace ip = boost::asio::ip;
-using ErrorCode = boost::system::error_code;
-
-template<typename T, typename U>
+template<typename ReadFuncType, typename WriteFuncType>
 class SocketContext : public std::enable_shared_from_this<SocketContext>
 {
 public:
     SocketContext(const SocketContext &) = delete;
     SocketContext &operator=(const SocketContext &) = delete;
-    SocketContext(ip::tcp::socket socket);
+    SocketContext(boost::asio::ip::tcp::socket socket);
+
+    // Pass in a callback, and trigger the callback whenever the system sends out a "read event"
+    void createReadEventTrigger(std::function<ReadFuncType> &cb);
+
+    // Pass in a callback, and trigger the callback whenever the system sends out a "write event"
+    void createWriteEventTrigger(std::function<WriteFuncType> &cb);
+
+    //listen read/write event
     void start();
     void setBufferSize(unsigned int& size);
-    void createReadEventTrigger(std::function<T> &cb);
-    void createWriteEventTrigger(std::function<U> &cb);
 
 private:
-    std::function<T> readEvent_;
-    std::function<U> writeEvent_;
-    ip::tcp::socket socket_;
+    // Raw data from buffer
     std::string data_;
+
+    // size of bits in each buffer operation
     std::size_t bufferSize_;
+
+    std::function<ReadFuncType> readEvent_;
+    std::function<WriteFuncType> writeEvent_;
+    boost::asio::ip::tcp::socket socket_;
 };
 #endif
