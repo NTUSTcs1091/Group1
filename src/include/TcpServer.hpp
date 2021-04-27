@@ -20,6 +20,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+<<<<<<< HEAD
  */
 #ifndef TCP_SERVER_H_
 #define TCP_SERVER_H_
@@ -37,6 +38,13 @@
  * Through the pre-defined SocketContext, linked to the acceptor, 
  * run asio::io_context.run(), it will combine the system buffer, socket, and SocketContext. 
  *
+=======
+ * 
+ * This file provides a bridge between the Tcp Server and the system socket,
+ * Through the pre-defined SocketContext, linked to the acceptor, 
+ * run asio::io_context.run(), it will combine the system buffer, socket, and SocketContext.
+ * 
+>>>>>>> 3c228d56391beb81c7ff1160761ad395042374c6
  * Ex.
  * int main()
  * {
@@ -56,7 +64,7 @@
  *     server.run();
  * }
  */
-template <typename T, typename U>
+template <typename ReadFuncType, typename WriteFuncType>
 class TcpServer
 {
 public : 
