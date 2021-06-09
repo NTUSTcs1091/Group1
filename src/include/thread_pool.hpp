@@ -83,7 +83,25 @@ class ThreadPool {
    * Jobs created using dispatch follow the FIFO mode.
    */
   template <typename Fn, typename... Args>
-  auto dispatch(Fn&& func, Args&&... args) -> std::future<decltype(func(args...))>;
+  auto dispatch(Fn&& func, Args&&... args) -> std::future<decltype(func(args...))> {
+    if (!processing_.load()) throw std::runtime_error("Thread pool is stop running.");
+    using FunctionType = decltype(func(args...));
+    using packaged_result_t = std::packaged_task<FunctionType()>;
+
+    auto task = std::make_shared<packaged_result_t>(
+      std::bind(std::forward<Fn>(func), std::forward<Args>(args)...)
+    );
+
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      jobs_.emplace_back([task]() {
+        (*task)();
+      });
+    }
+
+    cv_.notify_one();
+    return task->get_future();
+  }
 
   /**
    * Its function is similar to dispatch(),
@@ -92,7 +110,25 @@ class ThreadPool {
    * In other words, when a higher priority task is to be executed, you can use execute() to dispatch
    */
   template <typename Fn, typename... Args>
-  auto execute(Fn&& func, Args&&... args) -> std::future<decltype(func(args...))>;
+  auto execute(Fn&& func, Args&&... args) -> std::future<decltype(func(args...))> {
+    if (!processing_.load()) throw std::runtime_error("Thread pool is stop running.");
+    using FunctionType = decltype(func(args...));
+    using packaged_result_t = std::packaged_task<FunctionType()>;
+
+    auto task = std::make_shared<packaged_result_t>(
+      std::bind(std::forward<Fn>(func), std::forward<Args>(args)...)
+    );
+
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      jobs_.emplace_front([task]() {
+        (*task)();
+      });
+    }
+
+    cv_.notify_one();
+    return task->get_future();
+  }
 
   /**
    * abort() will set the relevant condition_variable,
