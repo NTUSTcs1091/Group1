@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 project (http_server)
 
 set(CMAKE_CXX_STANDARD 14)
+set(ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(src/include)
 
