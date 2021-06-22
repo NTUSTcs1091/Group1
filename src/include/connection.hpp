@@ -53,13 +53,16 @@ class Connection : std::enable_shared_from_this<Connection> {
    * Therefore declared as static member.
    * when constructor is called, pass to the newly created socket.
    */
-  static boost::asio::io_service& service;
+  static boost::asio::io_service service;
 
   /**
    * create a socket and initialize a buffer.
    * According to asio official documents, a 4KB buffer should be able to handle most message.
    */
-  Connection(uint buffer_size = 4096): socket_(Connection::service) { };
+  Connection(uint buffer_size = 4096): socket_(Connection::service), buffer_size_(buffer_size) {
+      buffer_.reserve(buffer_size_);
+      last_active_ = std::chrono::system_clock::now();
+  };
 
   /**
    * return socket instance, usually acceptor will use it.
@@ -100,7 +103,7 @@ class Connection : std::enable_shared_from_this<Connection> {
    * and then send it out by the I/O object.
    * Same as above, should call read_() or write_() again after callback.
    */
-  void write_();
+  void write_(size_t length);
 
   /**
    * socket instance, providing read/write interface
@@ -120,5 +123,11 @@ class Connection : std::enable_shared_from_this<Connection> {
    * the value is equivalent to the system time point of the last read and write operation
    */
   std::chrono::time_point<std::chrono::high_resolution_clock> last_active_;
+
+
+  /**
+   * allocate memory size to buffer, unit is bits
+   */
+  size_t buffer_size_;
 };
 #endif //_GROUP1_CONNECTION_H_
