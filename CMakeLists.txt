@@ -14,11 +14,14 @@ add_library(thread_pool
   src/implements/thread_pool.cc src/include/thread_pool.hpp
 )
 add_library(lib::tPool ALIAS thread_pool)
-
 target_link_libraries(thread_pool pthread)
 
-target_include_directories(thread_pool PUBLIC
-  src
+add_library(connection
+  src/implements/connection.cc src/include/connection.hpp
 )
+add_library(lib::connection ALIAS connection)
+
+target_include_directories(thread_pool PUBLIC src)
+target_include_directories(connection PUBLIC src)
 
 add_subdirectory(tests)
