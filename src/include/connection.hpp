@@ -32,35 +32,34 @@
  * This class corresponds to the session layer of the network OSI model,
  * when the operating system establishes a new connection,
  * Connection constructor will create a socket, and bind socket to I/O object.
- * I/O object provided by asio::io_service,
+ * I/O object provided by asio::io_context,
  * it's equivalent to creating a layer of I/O Context in the operating system and application.
- * 
+ *
  * @example Connection application scenarios
- * 
- * @code 
+ *
+ * @code
  * asio::acceptor acc;
  * auto connection = make_shared<Connection>();
  * acc.accept(connection);
  * connection.start();
  */
-class Connection : std::enable_shared_from_this<Connection> {
+class Connection : public std::enable_shared_from_this<Connection> {
  public:
-   Connection(Connection&) = delete;
-   Connection& operator=(Connection&) = delete;
   /**
-   * Every socket should bind to io_service,
-   * according to boost::asio document, io_service.run() is thread safe,
+   * Every socket should bind to io_context,
+   * according to boost::asio document, io_context.run() is thread safe,
    * Therefore declared as static member.
    * when constructor is called, pass to the newly created socket.
    */
-  static boost::asio::io_service service;
+  static boost::asio::io_context service;
 
   /**
    * create a socket and initialize a buffer.
    * According to asio official documents, a 4KB buffer should be able to handle most message.
    */
-  Connection(uint buffer_size = 4096): socket_(Connection::service), buffer_size_(buffer_size) {
-    buffer_.reserve(buffer_size_);
+  Connection(boost::asio::io_context &io_context, uint buffer_size = 4096)
+      : socket_(io_context), strand_(io_context), buffer_size_(buffer_size) {
+    buffer_ = std::make_unique<char[]>(buffer_size);
   };
 
   /**
@@ -71,22 +70,23 @@ class Connection : std::enable_shared_from_this<Connection> {
   /**
    * it just call read_() function.
    * Please note: it should be executed after Connection::service.run() called.
-   * 
+   *
    * In asynchronous model, Ex. use async_read(), async_write(),
    * callback function will enqueue to I/O Executor (Please refer to official documents)
-   * If io_service.run() is not executed, asio WON'T CHECK I/O Executor queue,
+   * If io_context.run() is not executed, asio WON'T CHECK I/O Executor queue,
    * This will result in no response from the appliaction.
    */
   void start();
 
   /**
    * read_(), write_() will update last_active_,
-   * this function will return time difference 
+   * this function will return time difference
    * between last_active_ current of the function call,
    * the unit is microsecond.
    */
   long during();
- private:
+
+ protected:
   /**
    * read_ will read the data packet from the I/O object,
    * then enqueue callback to I/O Executor queue.
@@ -97,8 +97,8 @@ class Connection : std::enable_shared_from_this<Connection> {
   void read_();
 
   /**
-   * The behavior of this function is similar to read_, 
-   * except that it will pass the data to the I/O object, 
+   * The behavior of this function is similar to read_,
+   * except that it will pass the data to the I/O object,
    * and then send it out by the I/O object.
    * Same as above, should call read_() or write_() again after callback.
    */
@@ -112,10 +112,10 @@ class Connection : std::enable_shared_from_this<Connection> {
   /**
    * Data storage buffer. The original design is to split the read/write buffer,
    * But later found out that every time the request must be read first, and then responded
-   * Can only read or write at the same time, 
+   * Can only read or write at the same time,
    * so there is no need to specially disassemble the buffer for reading and writing.
    */
-  std::vector<char> buffer_;
+  std::unique_ptr<char[]> buffer_;
 
   /**
    * read_(), write_() will update this value,
@@ -127,5 +127,7 @@ class Connection : std::enable_shared_from_this<Connection> {
    * Allocate memory for buffer, unit is bit.
    */
   size_t buffer_size_;
+
+  boost::asio::io_context::strand strand_;
 };
-#endif //_GROUP1_CONNECTION_H_
+#endif  //_GROUP1_CONNECTION_H_
