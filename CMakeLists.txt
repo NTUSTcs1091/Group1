@@ -5,7 +5,7 @@ project (http_server)
 set(CMAKE_CXX_STANDARD 14)
 set(ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(src/include)
+include_directories(src)
 
 find_package(Boost REQUIRED)
 find_package(Threads)
@@ -20,8 +20,5 @@ add_library(connection
   src/implements/connection.cc src/include/connection.hpp
 )
 add_library(lib::connection ALIAS connection)
-
-target_include_directories(thread_pool PUBLIC src)
-target_include_directories(connection PUBLIC src)
 
 add_subdirectory(tests)
