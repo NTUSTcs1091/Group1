@@ -25,8 +25,8 @@
 #include <boost/asio.hpp>
 #include <chrono>
 #include <memory>
-#include <thread>
-#include <vector>
+#include <fstream>
+#include "http_utils.hpp"
 /**
  * @brief
  * This class corresponds to the session layer of the network OSI model,
@@ -57,7 +57,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
    * create a socket and initialize a buffer.
    * According to asio official documents, a 4KB buffer should be able to handle most message.
    */
-  Connection(boost::asio::io_context &io_context, uint buffer_size = 4096)
+  Connection(boost::asio::io_context& io_context, uint buffer_size = 4096)
       : socket_(io_context), strand_(io_context), buffer_size_(buffer_size) {
     buffer_ = std::make_unique<char[]>(buffer_size);
   };
