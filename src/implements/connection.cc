@@ -16,11 +16,32 @@ long Connection::during() {
 
 void Connection::read_() {
   auto self = shared_from_this();
-  socket_.async_read_some(
-      boost::asio::buffer(buffer_.get(), buffer_size_),
+  boost::asio::async_read(
+      socket_, boost::asio::buffer(buffer_.get(), buffer_size_),
+      [this, self](boost::system::error_code ec, std::size_t bytes_transferred) {
+        std::string message(buffer_.get());
+        return message.find("\r\n") != std::string::npos;
+      },
       strand_.wrap([this, self](boost::system::error_code ec, std::size_t bytes_transferred) {
         if (!ec) {
-          write_(bytes_transferred);
+          auto rawBuffer = buffer_.get();
+          std::string request_str(rawBuffer, bytes_transferred - 2);
+          auto request = HttpUtils::HttpRequest(request_str);
+          auto abs_pathname = boost::filesystem::current_path() / request.pathname;
+          std::string pathStr(abs_pathname.c_str());
+          auto response = HttpUtils::HttpResponse(pathStr);
+          if (response.state_ == 200) {
+            std::ifstream file(pathStr);
+            std::string content((std::istreambuf_iterator<char>(file)),
+                                (std::istreambuf_iterator<char>()));
+            response.setMessage("OK").setContent(content);
+          } else {
+            response.setMessage("Not Found");
+          }
+          auto replyContent = response.stringify();
+          memset(rawBuffer, 0, bytes_transferred);
+          strncpy(rawBuffer, replyContent.c_str(), replyContent.size());
+          write_(replyContent.size());
         }
       }));
 }
